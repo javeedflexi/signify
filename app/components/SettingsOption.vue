@@ -4,6 +4,57 @@ import type { Alignment, SignatureFormData, SignatureOptions, TabsItem } from '~
 const options = defineModel<SignatureOptions>('options', { required: true })
 const data = defineModel<SignatureFormData>('data', { required: true })
 
+// Get toast
+const toast = useToast()
+
+// Add functionality for local image upload
+const fileInput = ref<HTMLInputElement | null>(null)
+const isUploading = ref(false)
+
+// Function to handle image upload
+function uploadImage(event: Event) {
+  const target = event.target as HTMLInputElement
+  if (!target.files || target.files.length === 0) return
+  
+  const file = target.files[0]
+  isUploading.value = true
+  
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    if (e.target?.result) {
+      data.value.image = e.target.result as string
+      isUploading.value = false
+      
+      // Show success toast
+      toast.add({
+        title: 'Image uploaded',
+        description: 'Your profile image has been updated successfully.',
+        icon: 'i-lucide-check-circle',
+        color: 'green',
+        timeout: 2000
+      })
+    }
+  }
+  reader.onerror = () => {
+    isUploading.value = false
+    
+    // Show error toast
+    toast.add({
+      title: 'Upload failed',
+      description: 'There was a problem uploading your image.',
+      icon: 'i-lucide-alert-circle',
+      color: 'red',
+      timeout: 2000
+    })
+  }
+  reader.readAsDataURL(file)
+}
+
+// Function to trigger file input click
+function triggerFileUpload() {
+  fileInput.value?.click()
+}
+
 function setAlign(newAlign: Alignment) {
   options.value.image.align = newAlign
 }
@@ -65,17 +116,29 @@ const uid = Math.random().toString(36).substring(2, 15)
 </script>
 
 <template>
-  <div>
-    <UTabs :items class="w-full">
+  <div class="bg-white">
+    <UTabs :items class="w-full" :ui="{
+      wrapper: 'bg-white',
+      list: {
+        background: 'bg-gray-100',
+        rounded: 'rounded-md',
+        padding: 'p-1'
+      },
+      item: {
+        active: 'bg-white text-gray-800 font-medium',
+        inactive: 'text-gray-600 hover:text-gray-800 hover:bg-white/80'
+      }
+    }">
       <template #information>
         <div class="mt-4">
           <div v-for="field in fields" :key="field.name" class="mb-4">
-            <label :for="field.name" class="block text-sm font-medium mb-1">{{ field.label }}</label>
+            <label :for="field.name" class="block text-sm font-medium mb-1 text-gray-700">{{ field.label }}</label>
             <UInput 
               :id="`${field.name}-${uid}`" 
               v-model="data[field.name]" 
               :type="field.type"
               :icon="field.icon"
+              class="bg-white border-gray-200"
             />
           </div>
         </div>
@@ -84,13 +147,13 @@ const uid = Math.random().toString(36).substring(2, 15)
       <template #socials>
         <div class="mt-4">
           <div v-for="social in data.socials" :key="social.title" class="mb-4">
-            <label class="block text-sm font-medium mb-1">{{ social.title }}</label>
+            <label class="block text-sm font-medium mb-1 text-gray-700">{{ social.title }}</label>
             <UInput 
               v-model="social.url" 
               type="text" 
               :icon="socialIcons[social.type] || 'i-lucide-link'"
               :placeholder="`${social.title} URL`"
-              class="w-full"
+              class="w-full bg-white border-gray-200"
             />
           </div>
         </div>
@@ -98,19 +161,50 @@ const uid = Math.random().toString(36).substring(2, 15)
 
       <template #image>
         <div class="mt-4 space-y-4">
+          <!-- Hidden file input for image upload -->
+          <input
+            ref="fileInput"
+            type="file"
+            accept="image/*"
+            class="hidden"
+            @change="uploadImage"
+          />
+          
           <div>
-            <label class="block text-sm font-medium mb-2">Image URL</label>
+            <label class="block text-sm font-medium mb-2 text-gray-700">Profile Image</label>
+            <div class="flex items-center mb-3">
+              <img 
+                :src="data.image" 
+                alt="Profile Image" 
+                class="w-16 h-16 rounded-full object-cover mr-4 border border-slate-700"
+              />
+              <div class="space-y-2">
+                <UButton
+                  color="green"
+                  variant="outline"
+                  size="sm"
+                  icon="i-lucide-upload"
+                  label="Upload Image"
+                  :loading="isUploading"
+                  @click="triggerFileUpload"
+                  class="border-2 border-green-500"
+                />
+              </div>
+            </div>
+            
+            <label class="block text-sm font-medium mb-2 text-gray-700">Image URL</label>
             <UInput 
               id="image" 
               v-model="data.image" 
               type="text" 
               icon="i-lucide-link"
               placeholder="https://example.com/image.jpg"
+              class="bg-white border-gray-200"
             />
           </div>
           
           <div>
-            <label class="block text-sm font-medium mb-2">Image Shape</label>
+            <label class="block text-sm font-medium mb-2 text-gray-700">Image Shape</label>
             <UButtonGroup>
               <UButton
                 v-for="form in ['circle', 'square', 'rectangle']"
@@ -127,7 +221,7 @@ const uid = Math.random().toString(36).substring(2, 15)
           </div>
           
           <div>
-            <label class="block text-sm font-medium mb-2">Image Alignment</label>
+            <label class="block text-sm font-medium mb-2 text-gray-700">Image Alignment</label>
             <UButtonGroup>
               <UButton
                 v-for="alignment in ['top', 'center', 'bottom']"
@@ -151,7 +245,7 @@ const uid = Math.random().toString(36).substring(2, 15)
           </div>
           
           <div>
-            <label class="block text-sm font-medium mb-2">Image Size</label>
+            <label class="block text-sm font-medium mb-2 text-gray-700">Image Size</label>
             <div class="flex items-center gap-2">
               <USlider
                 v-model="options.image.size"
@@ -165,7 +259,7 @@ const uid = Math.random().toString(36).substring(2, 15)
                 :min="40"
                 :max="120"
                 size="sm"
-                class="w-20"
+                class="w-20 bg-white border-gray-200"
               >
                 <template #trailing>
                   <span class="text-xs text-gray-500">px</span>
@@ -176,7 +270,7 @@ const uid = Math.random().toString(36).substring(2, 15)
 
           <div>
             <div class="flex items-center justify-between mb-2">
-              <label class="text-sm font-medium">Image Border</label>
+              <label class="text-sm font-medium text-gray-700">Image Border</label>
               <UCheckbox 
                 v-model="options.image.border" 
                 label="Show border" 
@@ -185,7 +279,7 @@ const uid = Math.random().toString(36).substring(2, 15)
             </div>
             <div v-if="options.image.border" class="space-y-3">
               <div>
-                <label class="block text-xs text-muted mb-1">Style</label>
+                <label class="block text-xs text-gray-500 mb-1">Style</label>
                 <UButtonGroup class="w-full">
                   <UButton
                     v-for="style in ['solid', 'dashed', 'dotted']"
@@ -202,7 +296,7 @@ const uid = Math.random().toString(36).substring(2, 15)
               </div>
               
               <div>
-                <label class="block text-xs text-muted mb-1">Width</label>
+                <label class="block text-xs text-gray-500 mb-1">Width</label>
                 <div class="flex items-center gap-2">
                   <USlider
                     v-model="options.image.borderWidth"
@@ -216,22 +310,22 @@ const uid = Math.random().toString(36).substring(2, 15)
                     :min="1"
                     :max="5"
                     size="sm"
-                    class="w-20"
+                    class="w-20 bg-white border-gray-200"
                   >
                     <template #trailing>
-                      <span class="text-xs text-muted">px</span>
+                      <span class="text-xs text-gray-500">px</span>
                     </template>
                   </UInput>
                 </div>
               </div>
               
               <div>
-                <label class="block text-xs text-muted mb-1">Color</label>
+                <label class="block text-xs text-gray-500 mb-1">Color</label>
                 <UPopover>
-                  <UButton color="neutral" variant="outline" size="sm" class="w-full">
+                  <UButton color="neutral" variant="outline" size="sm" class="w-full bg-white border-gray-200">
                     <template #leading>
                       <span 
-                        class="size-4 rounded-full border border-default" 
+                        class="size-4 rounded-full border border-gray-200" 
                         :style="{ backgroundColor: options.image.borderColor }"
                       />
                     </template>
@@ -250,7 +344,7 @@ const uid = Math.random().toString(36).substring(2, 15)
 
           <div>
             <div class="flex items-center justify-between mb-2">
-              <label class="text-sm font-medium">Image Shadow</label>
+              <label class="text-sm font-medium text-gray-700">Image Shadow</label>
               <UCheckbox 
                 v-model="options.image.shadow" 
                 label="Add shadow" 
@@ -259,7 +353,7 @@ const uid = Math.random().toString(36).substring(2, 15)
             </div>
             <div v-if="options.image.shadow" class="space-y-3">
               <div>
-                <label class="block text-xs text-muted mb-1">Intensity</label>
+                <label class="block text-xs text-gray-500 mb-1">Intensity</label>
                 <USlider
                   v-model="options.image.shadowIntensity"
                   :min="1"
@@ -275,7 +369,7 @@ const uid = Math.random().toString(36).substring(2, 15)
       <template #size>
         <div class="mt-4 space-y-4">
           <div>
-            <label class="block text-sm font-medium mb-2">Title Font Size</label>
+            <label class="block text-sm font-medium mb-2 text-gray-700">Title Font Size</label>
             <div class="flex items-center gap-2">
               <USlider
                 v-model="options.size.title"
@@ -289,17 +383,17 @@ const uid = Math.random().toString(36).substring(2, 15)
                 :min="12"
                 :max="24"
                 size="sm"
-                class="w-20"
+                class="w-20 bg-white border-gray-200"
               >
                 <template #trailing>
-                  <span class="text-xs text-muted">px</span>
+                  <span class="text-xs text-gray-500">px</span>
                 </template>
               </UInput>
             </div>
           </div>
           
           <div>
-            <label class="block text-sm font-medium mb-2">Subtitle Font Size</label>
+            <label class="block text-sm font-medium mb-2 text-gray-700">Subtitle Font Size</label>
             <div class="flex items-center gap-2">
               <USlider
                 v-model="options.size.subtitle"
@@ -313,17 +407,17 @@ const uid = Math.random().toString(36).substring(2, 15)
                 :min="10"
                 :max="18"
                 size="sm"
-                class="w-20"
+                class="w-20 bg-white border-gray-200"
               >
                 <template #trailing>
-                  <span class="text-xs text-muted">px</span>
+                  <span class="text-xs text-gray-500">px</span>
                 </template>
               </UInput>
             </div>
           </div>
           
           <div>
-            <label class="block text-sm font-medium mb-2">Social Font Size</label>
+            <label class="block text-sm font-medium mb-2 text-gray-700">Social Font Size</label>
             <div class="flex items-center gap-2">
               <USlider
                 v-model="options.size.social"
@@ -337,17 +431,17 @@ const uid = Math.random().toString(36).substring(2, 15)
                 :min="10"
                 :max="18"
                 size="sm"
-                class="w-20"
+                class="w-20 bg-white border-gray-200"
               >
                 <template #trailing>
-                  <span class="text-xs text-muted">px</span>
+                  <span class="text-xs text-gray-500">px</span>
                 </template>
               </UInput>
             </div>
           </div>
 
           <div>
-            <label class="block text-sm font-medium mb-2">Font Family</label>
+            <label class="block text-sm font-medium mb-2 text-gray-700">Font Family</label>
             <USelect
               v-model="options.font.family"
               :items="[
@@ -356,12 +450,12 @@ const uid = Math.random().toString(36).substring(2, 15)
                 { label: 'Roboto', value: 'roboto' },
                 { label: 'Arial', value: 'arial' }
               ]"
-              class="w-full"
+              class="w-full bg-white border-gray-200"
             />
           </div>
 
           <div>
-            <label class="block text-sm font-medium mb-2">Title Font Weight</label>
+            <label class="block text-sm font-medium mb-2 text-gray-700">Title Font Weight</label>
             <USelect
               v-model="options.font.titleWeight"
               :items="[
@@ -370,7 +464,7 @@ const uid = Math.random().toString(36).substring(2, 15)
                 { label: 'Semi Bold', value: '600' },
                 { label: 'Bold', value: '700' }
               ]"
-              class="w-full"
+              class="w-full bg-white border-gray-200"
             />
           </div>
         </div>
@@ -381,10 +475,10 @@ const uid = Math.random().toString(36).substring(2, 15)
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
               <UPopover>
-                <UButton color="neutral" variant="outline" size="sm">
+                <UButton color="neutral" variant="outline" size="sm" class="bg-white border-gray-200">
                   <template #leading>
                     <span 
-                      class="size-4 rounded-full border border-default" 
+                      class="size-4 rounded-full border border-gray-200" 
                       :style="{ backgroundColor: options.color.title }"
                     />
                   </template>
@@ -397,24 +491,15 @@ const uid = Math.random().toString(36).substring(2, 15)
                   </div>
                 </template>
               </UPopover>
-
-              <UCheckbox 
-                v-model="options.color.autoTitle" 
-                label="Auto adapt" 
-                :ui="{ 
-                  wrapper: 'items-center gap-1.5',
-                  label: 'text-xs text-muted'
-                }"
-              />
             </div>
           </div>
 
           <div class="flex items-center justify-between">
             <UPopover>
-              <UButton color="neutral" variant="outline" size="sm">
+              <UButton color="neutral" variant="outline" size="sm" class="bg-white border-gray-200">
                 <template #leading>
                   <span 
-                    class="size-4 rounded-full border border-default" 
+                    class="size-4 rounded-full border border-gray-200" 
                     :style="{ backgroundColor: options.color.subtitle }"
                   />
                 </template>
@@ -432,10 +517,10 @@ const uid = Math.random().toString(36).substring(2, 15)
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
               <UPopover>
-                <UButton color="neutral" variant="outline" size="sm">
+                <UButton color="neutral" variant="outline" size="sm" class="bg-white border-gray-200">
                   <template #leading>
                     <span 
-                      class="size-4 rounded-full border border-default" 
+                      class="size-4 rounded-full border border-gray-200" 
                       :style="{ 
                         backgroundColor: options.color.background,
                         opacity: options.color.transparent ? 0.5 : 1
@@ -457,7 +542,7 @@ const uid = Math.random().toString(36).substring(2, 15)
                 label="Transparent" 
                 :ui="{ 
                   wrapper: 'items-center gap-1.5',
-                  label: 'text-xs text-muted'
+                  label: 'text-xs text-gray-500'
                 }"
               />
             </div>
@@ -465,10 +550,10 @@ const uid = Math.random().toString(36).substring(2, 15)
 
           <div class="flex items-center justify-between">
             <UPopover>
-              <UButton color="neutral" variant="outline" size="sm">
+              <UButton color="neutral" variant="outline" size="sm" class="bg-white border-gray-200">
                 <template #leading>
                   <span 
-                    class="size-4 rounded-full border border-default" 
+                    class="size-4 rounded-full border border-gray-200" 
                     :style="{ backgroundColor: options.color.social }"
                   />
                 </template>
@@ -488,7 +573,7 @@ const uid = Math.random().toString(36).substring(2, 15)
       <template #gap>
         <div class="mt-4 space-y-4">
           <div>
-            <label class="block text-sm font-medium mb-1">Image Gap</label>
+            <label class="block text-sm font-medium mb-1 text-gray-700">Image Gap</label>
             <div class="flex items-center gap-2">
               <USlider
                 v-model="options.gap.image"
@@ -496,14 +581,14 @@ const uid = Math.random().toString(36).substring(2, 15)
                 :max="30"
                 class="flex-1"
               />
-              <span class="bg-gray-200 dark:bg-neutral-800 px-2 py-1 rounded-md text-xs">
+              <span class="bg-gray-100 px-2 py-1 rounded-md text-xs text-gray-700">
                 {{ options.gap.image }}px
               </span>
             </div>
           </div>
           
           <div>
-            <label class="block text-sm font-medium mb-1">Social Links Gap</label>
+            <label class="block text-sm font-medium mb-1 text-gray-700">Social Links Gap</label>
             <div class="flex items-center gap-2">
               <USlider
                 v-model="options.gap.social"
@@ -511,7 +596,7 @@ const uid = Math.random().toString(36).substring(2, 15)
                 :max="20"
                 class="flex-1"
               />
-              <span class="bg-gray-200 dark:bg-neutral-800 px-2 py-1 rounded-md text-xs">
+              <span class="bg-gray-100 px-2 py-1 rounded-md text-xs text-gray-700">
                 {{ options.gap.social }}px
               </span>
             </div>
