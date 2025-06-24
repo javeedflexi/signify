@@ -1,7 +1,7 @@
 {
   "name": "signify-app",
   "assets": {
-    "directory": ".output/public"
+    "directory": "./dist/client/"
   },
   "compatibility_date": "2025-06-05",
   "routes": [
