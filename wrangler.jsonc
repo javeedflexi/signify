@@ -4,7 +4,7 @@
  */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "signify",
+  "name": "signify-w",
   // "main": "./.output/server/index.mjs",
   "compatibility_date": "2025-06-20",
   "assets": {
