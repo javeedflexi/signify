@@ -47,6 +47,9 @@ useHead({
         </div>
       </div>
     </UApp>
+      <p style="text-align: center;"><a href="https://flexifunnels.com" target="_blank" rel="noopener noreferrer"
+                    className="hover:underline">FlexiFunnels.</a> All rights reserved.</p>
+            <p style="text-align: center;">Build Websites, Funnels & Courses Without Coding... Using AI</p>
   </Html>
 </template>
 
